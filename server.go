@@ -21,6 +21,17 @@ var routeType = graphql.NewObject(
 			"Color": &graphql.Field{
 				Type: graphql.String,
 			},
+			"Directions": &graphql.Field{
+				Type: graphql.NewList(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					// get title from source
+					obj, _ := p.Source.(Route)
+
+
+					// add business logic to retrieve find for given post title
+					return database.getOrCreateDirections(obj.RouteId), nil
+				},
+			},
 		},
 	})
 
@@ -38,6 +49,8 @@ func main() {
 	http.Handle("/graphiql", graphiqlHandler)
 	http.ListenAndServe(":3000", nil)
 }
+
+var database = NewDatabase(ApiClient{})
 
 func gqlHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,10 +91,30 @@ func gqlSchema() graphql.Schema {
 			Type: graphql.NewList(routeType),
 			Args: nil,
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				return RetrieveStops().RoutesList.Routes, nil
+				return database.getOrCreateRoutes(), nil
 			},
 			DeprecationReason: "",
 			Description:       "All routes",
+		},
+		"route": &graphql.Field{
+			Type:        routeType,
+			Description: "Get Route by ID",
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				id, success := params.Args["id"].(string)
+				if success {
+					for _, route := range database.getOrCreateRoutes() {
+						if route.RouteId == id {
+							return route, nil
+						}
+					}
+				}
+				return nil, nil
+			},
 		},
 	}
 	rootQuery := graphql.ObjectConfig{Name: "RootQuery", Fields: fields}
