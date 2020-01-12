@@ -1,3 +1,4 @@
 package main
 
-const CtaApiKey = ""
+// CtaAPIKey is the API key required to access the HTTP API from CTA
+const CtaAPIKey = ""

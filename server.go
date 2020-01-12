@@ -12,7 +12,7 @@ var routeType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "Route",
 		Fields: graphql.Fields{
-			"RouteId": &graphql.Field{
+			"RouteID": &graphql.Field{
 				Type: graphql.String,
 			},
 			"CommonName": &graphql.Field{
@@ -28,7 +28,7 @@ var routeType = graphql.NewObject(
 					channel := make(chan []string)
 					go func() {
 						defer close(channel)
-						database.getOrCreateDirections(route.RouteId, channel)
+						database.getOrCreateDirections(route.RouteID, channel)
 					}()
 
 					return func() (interface{}, error) {
@@ -56,7 +56,7 @@ func main() {
 	http.ListenAndServe(":3000", nil)
 }
 
-var database = NewDatabase(NewApiClient())
+var database = NewDatabase(NewAPIClient())
 
 func gqlHandler(schema *graphql.Schema) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +114,7 @@ func gqlSchema() graphql.Schema {
 				id, success := params.Args["id"].(string)
 				if success {
 					for _, route := range database.getOrCreateRoutes() {
-						if route.RouteId == id {
+						if route.RouteID == id {
 							return route, nil
 						}
 					}

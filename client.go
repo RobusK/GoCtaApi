@@ -7,13 +7,14 @@ import (
 	"time"
 )
 
-type ApiClient struct {
-	tr *http.Transport
+// APIClient is a HTTP client making requests to the CTA API
+type APIClient struct {
+	transport *http.Transport
 }
-
-func NewApiClient() *ApiClient {
-	client := &ApiClient{}
-	client.tr = &http.Transport{
+// NewAPIClient creates a new instance of a API Client
+func NewAPIClient() *APIClient {
+	client := &APIClient{}
+	client.transport = &http.Transport{
 		MaxIdleConns:        15,
 		IdleConnTimeout:     1 * time.Second,
 		TLSHandshakeTimeout: 1 * time.Second,
@@ -21,14 +22,14 @@ func NewApiClient() *ApiClient {
 	return client
 }
 
-func (c ApiClient) RetrieveRoutes() []Route {
+func (c APIClient) retrieveRoutes() []Route {
 	fmt.Println("Retrieving stops")
 
-	client := &http.Client{Transport: c.tr, Timeout: time.Second * 10,}
+	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", "http://www.ctabustracker.com/bustime/api/v2/getroutes", nil)
 
 	q := req.URL.Query()
-	q.Add("key", CtaApiKey)
+	q.Add("key", CtaAPIKey)
 	q.Add("format", "json")
 	req.URL.RawQuery = q.Encode()
 
@@ -42,16 +43,16 @@ func (c ApiClient) RetrieveRoutes() []Route {
 	return parsed.RoutesList.Routes
 }
 
-func (c ApiClient) RetrieveDirectionsForRoute(routeId string) []Direction {
-	fmt.Println("Retrieving Directions for routeId ", routeId)
+func (c APIClient) retrieveDirectionsForRoute(routeID string) []Direction {
+	fmt.Println("Retrieving Directions for routeID ", routeID)
 
-	client := &http.Client{Transport: c.tr, Timeout: time.Second * 10,}
+	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", "http://www.ctabustracker.com/bustime/api/v2/getdirections", nil)
 
 	q := req.URL.Query()
-	q.Add("key", CtaApiKey)
+	q.Add("key", CtaAPIKey)
 	q.Add("format", "json")
-	q.Add("rt", routeId)
+	q.Add("rt", routeID)
 	req.URL.RawQuery = q.Encode()
 
 	resp, _ := client.Do(req)
