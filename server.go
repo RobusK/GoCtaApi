@@ -24,10 +24,17 @@ var routeType = graphql.NewObject(
 			"Directions": &graphql.Field{
 				Type: graphql.NewList(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					obj, _ := p.Source.(Route)
-					directions := database.getOrCreateDirections(obj.RouteId)
+					route, _ := p.Source.(Route)
+					channel := make(chan []string)
+					go func() {
+						defer close(channel)
+						database.getOrCreateDirections(route.RouteId, channel)
+					}()
 
-					return directions, nil
+					return func() (interface{}, error) {
+						result := <-channel
+						return result, nil
+					}, nil
 				},
 			},
 		},

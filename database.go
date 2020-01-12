@@ -1,13 +1,18 @@
 package main
 
+import (
+	"sync"
+)
+
 type Database struct {
-	routes     []Route
-	directions map[string][]string
-	client     *ApiClient
+	routes          []Route
+	directions      map[string][]string
+	directionsMutex sync.RWMutex
+	client          *ApiClient
 }
 
 func NewDatabase(client *ApiClient) *Database {
-	return &Database{client: client, directions: make(map[string][]string)}
+	return &Database{client: client, directions: make(map[string][]string), directionsMutex: sync.RWMutex{}}
 }
 
 func (f *Database) getOrCreateRoutes() []Route {
@@ -17,14 +22,16 @@ func (f *Database) getOrCreateRoutes() []Route {
 	return f.routes
 }
 
-func (f *Database) getOrCreateDirections(routeId string) []string {
+func (f *Database) getOrCreateDirections(routeId string, ch chan<- []string) {
 	if f.directions[routeId] == nil {
 		directions := f.client.RetrieveDirectionsForRoute(routeId)
 		directionsArray := make([]string, len(directions))
 		for index, element := range directions {
 			directionsArray[index] = element.Value
 		}
+		f.directionsMutex.Lock()
 		f.directions[routeId] = directionsArray
+		f.directionsMutex.Unlock()
 	}
-	return f.directions[routeId]
+	ch <- f.directions[routeId]
 }
