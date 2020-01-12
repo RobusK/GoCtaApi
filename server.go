@@ -24,12 +24,10 @@ var routeType = graphql.NewObject(
 			"Directions": &graphql.Field{
 				Type: graphql.NewList(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					// get title from source
 					obj, _ := p.Source.(Route)
+					directions := database.getOrCreateDirections(obj.RouteId)
 
-
-					// add business logic to retrieve find for given post title
-					return database.getOrCreateDirections(obj.RouteId), nil
+					return directions, nil
 				},
 			},
 		},
@@ -41,18 +39,19 @@ type reqBody struct {
 
 func main() {
 	graphiqlHandler, err := graphiql.NewGraphiqlHandler("/graphql")
+	schema := gqlSchema()
 	if err != nil {
 		panic(err)
 	}
 
-	http.Handle("/graphql", gqlHandler())
+	http.Handle("/graphql", gqlHandler(&schema))
 	http.Handle("/graphiql", graphiqlHandler)
 	http.ListenAndServe(":3000", nil)
 }
 
-var database = NewDatabase(ApiClient{})
+var database = NewDatabase(NewApiClient())
 
-func gqlHandler() http.Handler {
+func gqlHandler(schema *graphql.Schema) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body == nil {
 			http.Error(w, "No query data", 400)
@@ -65,14 +64,14 @@ func gqlHandler() http.Handler {
 			http.Error(w, "Error parsing JSON request body", 400)
 		}
 
-		fmt.Fprintf(w, "%s", processQuery(rBody.Query))
+		fmt.Fprintf(w, "%s", processQuery(rBody.Query, schema))
 
 	})
 }
 
-func processQuery(query string) (result string) {
+func processQuery(query string, schema *graphql.Schema) (result string) {
 
-	params := graphql.Params{Schema: gqlSchema(), RequestString: query}
+	params := graphql.Params{Schema: *schema, RequestString: query}
 	r := graphql.Do(params)
 	if len(r.Errors) > 0 {
 		fmt.Printf("failed to execute graphql operation, errors: %+v", r.Errors)

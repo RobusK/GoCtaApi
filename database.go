@@ -3,10 +3,10 @@ package main
 type Database struct {
 	routes     []Route
 	directions map[string][]string
-	client     ApiClient
+	client     *ApiClient
 }
 
-func NewDatabase(client ApiClient) *Database {
+func NewDatabase(client *ApiClient) *Database {
 	return &Database{client: client, directions: make(map[string][]string)}
 }
 

@@ -8,16 +8,23 @@ import (
 )
 
 type ApiClient struct {
+	tr *http.Transport
+}
+
+func NewApiClient() *ApiClient {
+	client := &ApiClient{}
+	client.tr = &http.Transport{
+		MaxIdleConns:        15,
+		IdleConnTimeout:     1 * time.Second,
+		TLSHandshakeTimeout: 1 * time.Second,
+	}
+	return client
 }
 
 func (c ApiClient) RetrieveRoutes() []Route {
 	fmt.Println("Retrieving stops")
-	tr := &http.Transport{
-		MaxIdleConns:    10,
-		IdleConnTimeout: 10 * time.Second,
-	}
 
-	client := &http.Client{Transport: tr}
+	client := &http.Client{Transport: c.tr, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", "http://www.ctabustracker.com/bustime/api/v2/getroutes", nil)
 
 	q := req.URL.Query()
@@ -36,13 +43,9 @@ func (c ApiClient) RetrieveRoutes() []Route {
 }
 
 func (c ApiClient) RetrieveDirectionsForRoute(routeId string) []Direction {
-	fmt.Println("Retrieving Directions")
-	tr := &http.Transport{
-		MaxIdleConns:    10,
-		IdleConnTimeout: 10 * time.Second,
-	}
+	fmt.Println("Retrieving Directions for routeId ", routeId)
 
-	client := &http.Client{Transport: tr}
+	client := &http.Client{Transport: c.tr, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", "http://www.ctabustracker.com/bustime/api/v2/getdirections", nil)
 
 	q := req.URL.Query()
@@ -54,7 +57,6 @@ func (c ApiClient) RetrieveDirectionsForRoute(routeId string) []Direction {
 	resp, _ := client.Do(req)
 	parsed := BusTimeDirectionsResponse{}
 	err := json.NewDecoder(resp.Body).Decode(&parsed)
-
 
 	if err != nil {
 		fmt.Println(err)
