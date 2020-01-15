@@ -13,9 +13,9 @@ func NewRoutesService(client *api.APIClient) *RoutesService {
 	}
 }
 
-func (f *RoutesService) GetOrCreateRoutes() []api.Route {
-	if f.routes == nil {
-		f.routes = f.client.RetrieveRoutes()
+func (service *RoutesService) GetOrCreateRoutes() []api.Route {
+	if service.routes == nil {
+		service.routes = service.client.RetrieveRoutes()
 	}
-	return f.routes
+	return service.routes
 }

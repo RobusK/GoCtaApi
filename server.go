@@ -5,7 +5,6 @@ import (
 	"GoCtaApi/services"
 	"encoding/json"
 	"fmt"
-	"github.com/friendsofgo/graphiql"
 	"github.com/graphql-go/graphql"
 	"net/http"
 )
@@ -65,17 +64,6 @@ type reqBody struct {
 	Query string `json:"query"`
 }
 
-func main() {
-	graphiqlHandler, err := graphiql.NewGraphiqlHandler("/graphql")
-	schema := gqlSchema()
-	if err != nil {
-		panic(err)
-	}
-
-	http.Handle("/graphql", gqlHandler(&schema))
-	http.Handle("/graphiql", graphiqlHandler)
-	http.ListenAndServe(":3000", nil)
-}
 
 var (
 	client            = api.NewAPIClient(CtaAPIKey)

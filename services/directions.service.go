@@ -19,16 +19,16 @@ func NewDirectionsService(client *api.APIClient) *DirectionsService {
 	}
 }
 
-func (f *DirectionsService) GetOrCreateDirections(routeID string, ch chan<- []string) {
-	if f.directions[routeID] == nil {
-		directions := f.client.RetrieveDirectionsForRoute(routeID)
+func (service *DirectionsService) GetOrCreateDirections(routeID string, ch chan<- []string) {
+	if service.directions[routeID] == nil {
+		directions := service.client.RetrieveDirectionsForRoute(routeID)
 		directionsArray := make([]string, len(directions))
 		for index, element := range directions {
 			directionsArray[index] = element.Value
 		}
-		f.directionsMutex.Lock()
-		f.directions[routeID] = directionsArray
-		f.directionsMutex.Unlock()
+		service.directionsMutex.Lock()
+		service.directions[routeID] = directionsArray
+		service.directionsMutex.Unlock()
 	}
-	ch <- f.directions[routeID]
+	ch <- service.directions[routeID]
 }

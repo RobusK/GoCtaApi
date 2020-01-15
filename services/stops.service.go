@@ -21,12 +21,12 @@ func NewStopsService(client *api.APIClient) *StopsService {
 	}
 }
 
-func (f *StopsService) GetOrCreateStops(routeID string, direction string) []api.Stop {
+func (service *StopsService) GetOrCreateStops(routeID string, direction string) []api.Stop {
 
 	key := stopKey{routeID: routeID, direction: direction}
 
-	if f.stops[key] == nil {
-		f.stops[key] = f.client.RetrieveStopsForRoute(routeID, direction)
+	if service.stops[key] == nil {
+		service.stops[key] = service.client.RetrieveStopsForRoute(routeID, direction)
 	}
-	return f.stops[key]
+	return service.stops[key]
 }
