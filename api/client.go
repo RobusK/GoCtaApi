@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const baseUrl = "http://www.ctabustracker.com/bustime/api/v2"
+
 // APIClient is a HTTP client making requests to the CTA API
 type APIClient struct {
 	transport *http.Transport
@@ -30,7 +32,7 @@ func (c APIClient) RetrieveRoutes() []Route {
 	fmt.Println("Retrieving stops")
 
 	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
-	req, _ := http.NewRequest("GET", "http://www.ctabustracker.com/bustime/api/v2/getroutes", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/getroutes", nil)
 
 	q := req.URL.Query()
 	q.Add("key", c.APIKey)
@@ -50,7 +52,7 @@ func (c APIClient) RetrieveDirectionsForRoute(routeID string) []Direction {
 	fmt.Println("Retrieving Directions for routeID ", routeID)
 
 	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
-	req, _ := http.NewRequest("GET", "http://www.ctabustracker.com/bustime/api/v2/getdirections", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/getdirections", nil)
 
 	q := req.URL.Query()
 	q.Add("key", c.APIKey)
@@ -73,7 +75,7 @@ func (c APIClient) RetrieveStopsForRoute(routeID string, direction string) []Sto
 	fmt.Println("Retrieving Stops for routeID ", routeID, direction)
 
 	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
-	req, _ := http.NewRequest("GET", "http://www.ctabustracker.com/bustime/api/v2/getstops", nil)
+	req, _ := http.NewRequest("GET", baseUrl+"/getstops", nil)
 
 	q := req.URL.Query()
 	q.Add("key", c.APIKey)
