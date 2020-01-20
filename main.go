@@ -13,6 +13,7 @@ var (
 	directionService  = services.NewDirectionsService(client)
 	routeService      = services.NewRoutesService(client)
 	stopService       = services.NewStopsService(client)
+	predictionService = services.NewPredictionsService(client)
 )
 
 func getAPIKey() string {

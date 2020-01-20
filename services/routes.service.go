@@ -4,10 +4,10 @@ import "GoCtaApi/api"
 
 type RoutesService struct {
 	routes []api.Route
-	client *api.APIClient
+	client *api.Client
 }
 
-func NewRoutesService(client *api.APIClient) *RoutesService {
+func NewRoutesService(client *api.Client) *RoutesService {
 	return &RoutesService{
 		client: client,
 	}

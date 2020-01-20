@@ -10,11 +10,12 @@ type stopKey struct {
 }
 
 type StopsService struct {
-	stops  map[stopKey][]api.Stop
-	client *api.APIClient
+	stops       map[stopKey][]api.Stop
+	client      *api.Client
+	staticStops []api.Stop
 }
 
-func NewStopsService(client *api.APIClient) *StopsService {
+func NewStopsService(client *api.Client) *StopsService {
 	return &StopsService{
 		client: client,
 		stops:  make(map[stopKey][]api.Stop),
