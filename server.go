@@ -2,11 +2,8 @@ package main
 
 import (
 	"GoCtaApi/api"
-	"GoCtaApi/services"
-	"encoding/json"
 	"fmt"
 	"github.com/graphql-go/graphql"
-	"net/http"
 )
 
 var routeType = graphql.NewObject(
@@ -29,7 +26,7 @@ var routeType = graphql.NewObject(
 					channel := make(chan []string)
 					go func() {
 						defer close(channel)
-						directionsService.GetOrCreateDirections(route.RouteID, channel)
+						directionService.GetOrCreateDirections(route.RouteID, channel)
 					}()
 
 					return func() (interface{}, error) {
@@ -60,49 +57,6 @@ var stopType = graphql.NewObject(
 		},
 	})
 
-type reqBody struct {
-	Query string `json:"query"`
-}
-
-
-var (
-	client            = api.NewAPIClient(CtaAPIKey)
-	directionsService = services.NewDirectionsService(client)
-	routesService     = services.NewRoutesService(client)
-	stopService       = services.NewStopsService(client)
-)
-
-func gqlHandler(schema *graphql.Schema) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Body == nil {
-			http.Error(w, "No query data", 400)
-			return
-		}
-
-		var rBody reqBody
-		err := json.NewDecoder(r.Body).Decode(&rBody)
-		if err != nil {
-			http.Error(w, "Error parsing JSON request body", 400)
-		}
-
-		fmt.Fprintf(w, "%s", processQuery(rBody.Query, schema))
-
-	})
-}
-
-func processQuery(query string, schema *graphql.Schema) (result string) {
-
-	params := graphql.Params{Schema: *schema, RequestString: query}
-	r := graphql.Do(params)
-	if len(r.Errors) > 0 {
-		fmt.Printf("failed to execute graphql operation, errors: %+v", r.Errors)
-	}
-	rJSON, _ := json.Marshal(r)
-
-	return fmt.Sprintf("%s", rJSON)
-
-}
-
 // Define the GraphQL Schema
 func gqlSchema() graphql.Schema {
 	fields := graphql.Fields{
@@ -111,7 +65,7 @@ func gqlSchema() graphql.Schema {
 			Type: graphql.NewList(routeType),
 			Args: nil,
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				return routesService.GetOrCreateRoutes(), nil
+				return routeService.GetOrCreateRoutes(), nil
 			},
 			DeprecationReason: "",
 			Description:       "All routes",
@@ -127,7 +81,7 @@ func gqlSchema() graphql.Schema {
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				id, success := params.Args["id"].(string)
 				if success {
-					for _, route := range routesService.GetOrCreateRoutes() {
+					for _, route := range routeService.GetOrCreateRoutes() {
 						if route.RouteID == id {
 							return route, nil
 						}
