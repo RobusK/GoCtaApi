@@ -32,8 +32,10 @@ func main() {
 		GraphiQL: true,
 	})
 
+	staticFileHandler := http.FileServer(http.Dir("./static/"))
 
 	http.Handle("/graphql", disableCors(h))
+	http.Handle("/", staticFileHandler)
 	http.ListenAndServe(serverHostname+":"+serverPort, nil)
 }
 
