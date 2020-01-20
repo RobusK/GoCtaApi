@@ -169,6 +169,38 @@ func gqlSchema() graphql.Schema {
 				return nil, errors.New("missing or invalid arguments")
 			},
 		},
+		"closestStops": &graphql.Field{
+			Type:        graphql.NewList(stopType),
+			Description: "Get Stops by coordinates",
+			Args: graphql.FieldConfigArgument{
+				"Lat": &graphql.ArgumentConfig{
+					Type: graphql.Float,
+				},
+				"Lon": &graphql.ArgumentConfig{
+					Type: graphql.Float,
+				},
+				"Limit": &graphql.ArgumentConfig{
+					Type:         graphql.Int,
+					DefaultValue: 10,
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				lat, success := params.Args["Lat"].(float64)
+				lon, success2 := params.Args["Lon"].(float64)
+				limit, success3 := params.Args["Limit"].(int)
+				if success && success2 && success3 {
+					if limit > 10 {
+						limit = 10
+					}
+					if limit <= 0 {
+						limit = 1
+					}
+					stops := stopService.GetClosest(lat, lon)
+					return (*stops)[:limit], nil
+				}
+				return nil, errors.New("missing or invalid arguments")
+			},
+		},
 		"predictions": &graphql.Field{
 			Type:        graphql.NewList(predictionType),
 			Description: "Get predictions by RouteID and StopID.",
