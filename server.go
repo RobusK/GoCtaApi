@@ -2,8 +2,10 @@ package main
 
 import (
 	"GoCtaApi/api"
+	"errors"
 	"fmt"
 	"github.com/graphql-go/graphql"
+	"strings"
 )
 
 var routeType = graphql.NewObject(
@@ -54,6 +56,63 @@ var stopType = graphql.NewObject(
 			"Lon": &graphql.Field{
 				Type: graphql.Float,
 			},
+			"Predictions": &graphql.Field{
+				Type: graphql.NewList(predictionType),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					stop, _ := p.Source.(api.Stop)
+					channel := make(chan []api.Prediction)
+					go func() {
+						defer close(channel)
+						predictionService.GetOrCreatePredictionsForStop(stop.StopID, channel)
+					}()
+
+					return func() (interface{}, error) {
+						result := <-channel
+						return result, nil
+					}, nil
+
+				},
+			},
+		},
+	})
+
+var predictionType = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "Prediction",
+		Fields: graphql.Fields{
+			"StopID": &graphql.Field{
+				Type: graphql.String,
+			},
+			"Type": &graphql.Field{
+				Type: graphql.String,
+			},
+			"StopName": &graphql.Field{
+				Type: graphql.String,
+			},
+			"VehicleID": &graphql.Field{
+				Type: graphql.String,
+			},
+			"Distance": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"RouteID": &graphql.Field{
+				Type: graphql.String,
+			},
+			"Direction": &graphql.Field{
+				Type: graphql.String,
+			},
+			"Destination": &graphql.Field{
+				Type: graphql.String,
+			},
+			"PredictedTime": &graphql.Field{
+				Type: graphql.String,
+			},
+			"Delayed": &graphql.Field{
+				Type: graphql.Boolean,
+			},
+			"TimeLeft": &graphql.Field{
+				Type: graphql.String,
+			},
 		},
 	})
 
@@ -61,54 +120,81 @@ var stopType = graphql.NewObject(
 func gqlSchema() graphql.Schema {
 	fields := graphql.Fields{
 		"routes": &graphql.Field{
-			Name: "",
 			Type: graphql.NewList(routeType),
 			Args: nil,
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				return routeService.GetOrCreateRoutes(), nil
 			},
-			DeprecationReason: "",
-			Description:       "All routes",
+			Description: "All routes",
 		},
 		"route": &graphql.Field{
 			Type:        routeType,
 			Description: "Get Route by ID",
 			Args: graphql.FieldConfigArgument{
-				"id": &graphql.ArgumentConfig{
+				"RouteID": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				id, success := params.Args["id"].(string)
-				if success {
-					for _, route := range routeService.GetOrCreateRoutes() {
-						if route.RouteID == id {
-							return route, nil
-						}
+				id, success := params.Args["RouteID"].(string)
+				if !success {
+					return nil, errors.New("missing or invalid arguments")
+				}
+				for _, route := range routeService.GetOrCreateRoutes() {
+					if route.RouteID == id {
+						return route, nil
 					}
 				}
-				return nil, nil
+				return nil, errors.New("route id not found")
 			},
 		},
 		"stops": &graphql.Field{
 			Type:        graphql.NewList(stopType),
 			Description: "Get Stops by Route ID and Direction",
 			Args: graphql.FieldConfigArgument{
-				"id": &graphql.ArgumentConfig{
+				"RouteID": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
-				"direction": &graphql.ArgumentConfig{
+				"Direction": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				id, success := params.Args["id"].(string)
-				direction, success2 := params.Args["direction"].(string)
+				routeID, success := params.Args["RouteID"].(string)
+				direction, success2 := params.Args["Direction"].(string)
 				if success && success2 {
-					stops := stopService.GetOrCreateStops(id, direction)
+					stops := stopService.GetOrCreateStops(routeID, direction)
 					return stops, nil
 				}
-				return nil, nil
+				return nil, errors.New("missing or invalid arguments")
+			},
+		},
+		"predictions": &graphql.Field{
+			Type:        graphql.NewList(predictionType),
+			Description: "Get predictions by RouteID and StopID.",
+			Args: graphql.FieldConfigArgument{
+				"RouteID": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"StopID": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				routeID, success := params.Args["RouteID"].(string)
+				stopID, success2 := params.Args["StopID"].(string)
+				if success && success2 {
+					predictions := predictionService.GetOrCreatePredictionsForStopAndRoute(stopID, routeID)
+					if len(predictions.Error) > 0 {
+						message := ""
+						for _, value := range predictions.Error {
+							message += value.Message + ". "
+						}
+						return nil, errors.New(strings.Trim(message, " "))
+					}
+					return predictions.Predictions, nil
+				}
+				return nil, errors.New("missing or invalid arguments")
 			},
 		},
 	}
