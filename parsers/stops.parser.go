@@ -11,7 +11,7 @@ import (
 )
 
 func GetStopCoordinates() []api.Stop {
-	csvFile, _ := os.Open("./data/stops.txt")
+	csvFile, _ := os.Open("./data/stops_with_bus_service.csv")
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	var stops []api.Stop
 	for {
