@@ -57,9 +57,6 @@ MIT
 @angular/core
 MIT
 
-@angular/forms
-MIT
-
 @angular/material
 MIT
 The MIT License
@@ -85,13 +82,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
-@angular/material/card
-
-@angular/material/core
-
-@angular/material/list
-
 @angular/platform-browser
+MIT
+
+@angular/service-worker
 MIT
 
 @wry/context
@@ -887,7 +881,7 @@ zone.js
 MIT
 The MIT License
 
-Copyright (c) 2016-2018 Google, Inc.
+Copyright (c) 2010-2019 Google LLC. http://angular.io/license
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
