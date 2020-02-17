@@ -60,15 +60,23 @@ var stopType = graphql.NewObject(
 				Type: graphql.NewList(predictionType),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					stop, _ := p.Source.(api.Stop)
-					channel := make(chan []api.Prediction)
+					resultChannel := make(chan []api.Prediction, 1)
+					errChannel := make(chan error, 1)
 					go func() {
-						defer close(channel)
-						predictionService.GetOrCreatePredictionsForStop(stop.StopID, channel)
+						defer close(resultChannel)
+						defer close(errChannel)
+						predictions, err := predictionService.GetOrCreatePredictionsForStop(stop.StopID)
+						if err != nil {
+							errChannel <- err
+						} else {
+							resultChannel <- *predictions
+						}
 					}()
 
 					return func() (interface{}, error) {
-						result := <-channel
-						return result, nil
+						result := <-resultChannel
+						err := <-errChannel
+						return result, err
 					}, nil
 
 				},

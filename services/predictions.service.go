@@ -11,9 +11,16 @@ func NewPredictionsService(client *api.Client) *PredictionsService {
 }
 
 func (service *PredictionsService) GetOrCreatePredictionsForStopAndRoute(stopID string, routeID string) api.PredictionList {
-	return service.client.RetrievePredictionsForStopAndRoute(stopID, routeID)
+	if v, err := service.client.RetrievePredictionsForStopAndRoute(stopID, routeID); err != nil {
+		return *v
+	}
+	return api.PredictionList{}
 }
 
-func (service *PredictionsService) GetOrCreatePredictionsForStop(stopID string, ch chan<- []api.Prediction) {
-	ch <- service.client.RetrievePredictionsForStopAndRoute(stopID, "").Predictions
+func (service *PredictionsService) GetOrCreatePredictionsForStop(stopID string) (*[]api.Prediction, error) {
+	predList, err := service.client.RetrievePredictionsForStopAndRoute(stopID, "")
+	if err != nil {
+		return nil, err
+	}
+	return &predList.Predictions, nil
 }

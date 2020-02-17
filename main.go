@@ -6,10 +6,20 @@ import (
 	"github.com/graphql-go/handler"
 	"net/http"
 	"os"
+	"time"
 )
 
+var httpClient = &http.Client{
+	Transport: &http.Transport{
+		MaxIdleConns:        15,
+		IdleConnTimeout:     1 * time.Second,
+		TLSHandshakeTimeout: 1 * time.Second,
+	},
+	Timeout: time.Second * 10,
+}
+
 var (
-	client            = api.NewAPIClient(getAPIKey())
+	client            = api.NewAPIClient(getAPIKey(), httpClient)
 	directionService  = services.NewDirectionsService(client)
 	routeService      = services.NewRoutesService(client)
 	stopService       = services.NewStopsService(client)

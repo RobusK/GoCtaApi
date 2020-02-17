@@ -4,26 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 )
 
 const baseURL = "http://www.ctabustracker.com/bustime/api/v2"
 
 // Client is a HTTP client making requests to the CTA API
 type Client struct {
-	transport *http.Transport
-	APIKey    string
+	APIKey     string
+	httpclient *http.Client
 }
 
 // NewAPIClient creates a new instance of a API Client
-func NewAPIClient(key string) *Client {
+func NewAPIClient(key string, httpclient *http.Client) *Client {
 	client := &Client{
-		APIKey: key,
-		transport: &http.Transport{
-			MaxIdleConns:        15,
-			IdleConnTimeout:     1 * time.Second,
-			TLSHandshakeTimeout: 1 * time.Second,
-		}}
+		APIKey:     key,
+		httpclient: httpclient,
+	}
 
 	return client
 }
@@ -32,7 +28,6 @@ func NewAPIClient(key string) *Client {
 func (c Client) RetrieveRoutes() []Route {
 	fmt.Println("Retrieving stops")
 
-	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", baseURL+"/getroutes", nil)
 
 	q := req.URL.Query()
@@ -40,7 +35,13 @@ func (c Client) RetrieveRoutes() []Route {
 	q.Add("format", "json")
 	req.URL.RawQuery = q.Encode()
 
-	resp, _ := client.Do(req)
+	resp, httpDoErr := c.httpclient.Do(req)
+	if httpDoErr != nil {
+		fmt.Println(httpDoErr)
+		return []Route{}
+	}
+	defer resp.Body.Close()
+
 	parsed := busTimeRoutesResponse{}
 	err := json.NewDecoder(resp.Body).Decode(&parsed)
 	if err != nil {
@@ -53,7 +54,6 @@ func (c Client) RetrieveRoutes() []Route {
 func (c Client) RetrieveDirectionsForRoute(routeID string) []Direction {
 	fmt.Println("Retrieving Directions for routeID ", routeID)
 
-	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", baseURL+"/getdirections", nil)
 
 	q := req.URL.Query()
@@ -62,9 +62,14 @@ func (c Client) RetrieveDirectionsForRoute(routeID string) []Direction {
 	q.Add("rt", routeID)
 	req.URL.RawQuery = q.Encode()
 
-	resp, _ := client.Do(req)
-	parsed := BusTimeDirectionsResponse{}
+	resp, httpDoErr := c.httpclient.Do(req)
+	if httpDoErr != nil {
+		fmt.Println(httpDoErr)
+		return []Direction{}
+	}
+	defer resp.Body.Close()
 
+	parsed := BusTimeDirectionsResponse{}
 	err := json.NewDecoder(resp.Body).Decode(&parsed)
 
 	if err != nil {
@@ -77,7 +82,6 @@ func (c Client) RetrieveDirectionsForRoute(routeID string) []Direction {
 func (c Client) RetrieveStopsForRoute(routeID string, direction string) []Stop {
 	fmt.Println("Retrieving Stops for routeID ", routeID, direction)
 
-	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", baseURL+"/getstops", nil)
 
 	q := req.URL.Query()
@@ -87,9 +91,15 @@ func (c Client) RetrieveStopsForRoute(routeID string, direction string) []Stop {
 	q.Add("dir", direction)
 	req.URL.RawQuery = q.Encode()
 
-	resp, _ := client.Do(req)
-	parsed := busTimeStopsResponse{}
+	resp, httpDoErr := c.httpclient.Do(req)
 
+	if httpDoErr != nil {
+		fmt.Println(httpDoErr)
+		return []Stop{}
+	}
+	defer resp.Body.Close()
+
+	parsed := busTimeStopsResponse{}
 	err := json.NewDecoder(resp.Body).Decode(&parsed)
 
 	if err != nil {
@@ -99,10 +109,9 @@ func (c Client) RetrieveStopsForRoute(routeID string, direction string) []Stop {
 }
 
 //RetrievePredictionsForStopAndRoute retrieves predicted arrival/deprature times for a stop and a route
-func (c Client) RetrievePredictionsForStopAndRoute(stopID string, routeID string) PredictionList {
+func (c Client) RetrievePredictionsForStopAndRoute(stopID string, routeID string) (*PredictionList, error) {
 	fmt.Println("Retrieving Predictions for StopID, routeID ", stopID, routeID)
 
-	client := &http.Client{Transport: c.transport, Timeout: time.Second * 10,}
 	req, _ := http.NewRequest("GET", baseURL+"/getpredictions", nil)
 
 	q := req.URL.Query()
@@ -112,7 +121,12 @@ func (c Client) RetrievePredictionsForStopAndRoute(stopID string, routeID string
 	q.Add("stpid", stopID)
 	req.URL.RawQuery = q.Encode()
 
-	resp, _ := client.Do(req)
+	resp, httpDoErr := c.httpclient.Do(req)
+	if httpDoErr != nil {
+		fmt.Println(httpDoErr)
+		return nil, httpDoErr
+	}
+	defer resp.Body.Close()
 
 	parsed := busTimePredictionsResponse{}
 	err := json.NewDecoder(resp.Body).Decode(&parsed)
@@ -120,5 +134,5 @@ func (c Client) RetrievePredictionsForStopAndRoute(stopID string, routeID string
 	if err != nil {
 		fmt.Println(err)
 	}
-	return parsed.Predictions
+	return &parsed.Predictions, nil
 }
