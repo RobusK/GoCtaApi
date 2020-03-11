@@ -3,8 +3,8 @@ package services
 import (
 	"GoCtaApi/api"
 	"GoCtaApi/parsers"
+	"github.com/wangjohn/quickselect"
 	"pault.ag/go/haversine"
-	"sort"
 )
 
 type byDistance struct {
@@ -54,8 +54,8 @@ func (service *StopsService) GetOrCreateStops(routeID string, direction string) 
 	return service.stops[key]
 }
 
-func (service *StopsService) GetClosest(lat float64, lon float64) *[]api.Stop {
+func (service *StopsService) GetClosest(lat float64, lon float64, k int) []api.Stop {
 	coordinates := service.staticStops
-	sort.Sort(newByDistance(coordinates, lat, lon))
-	return &coordinates
+	quickselect.QuickSelect(newByDistance(coordinates, lat, lon), k)
+	return coordinates[:k]
 }

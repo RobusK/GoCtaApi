@@ -16,6 +16,7 @@ ADD . /go/src/GoCtaApi
 RUN go get "github.com/graphql-go/graphql"
 RUN go get "github.com/graphql-go/handler"
 RUN go get "pault.ag/go/haversine"
+RUN go get "github.com/wangjohn/quickselect"
 
 WORKDIR /go/src/GoCtaApi
 RUN go build

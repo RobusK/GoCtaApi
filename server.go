@@ -195,8 +195,8 @@ func gqlSchema() graphql.Schema {
 					if limit <= 0 {
 						limit = 1
 					}
-					stops := stopService.GetClosest(lat, lon)
-					return (*stops)[:limit], nil
+					stops := stopService.GetClosest(lat, lon, limit)
+					return stops, nil
 				}
 				return nil, errors.New("missing or invalid arguments")
 			},
