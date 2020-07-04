@@ -1,7 +1,7 @@
 package services
 
 import (
-	"GoCtaApi/api"
+	"github.com/RobusK/GoCtaApi/api"
 	"sync"
 )
 

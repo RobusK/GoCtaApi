@@ -1,6 +1,6 @@
 package services
 
-import "GoCtaApi/api"
+import 	"github.com/RobusK/GoCtaApi/api"
 
 type RoutesService struct {
 	routes []api.Route

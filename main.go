@@ -1,19 +1,30 @@
 package main
 
 import (
-	"GoCtaApi/api"
-	"GoCtaApi/services"
+	"github.com/RobusK/GoCtaApi/api"
+	"github.com/RobusK/GoCtaApi/dataloaders"
+	"github.com/RobusK/GoCtaApi/services"
 	"github.com/graphql-go/handler"
 	"net/http"
 	"os"
+	"time"
 )
 
+var httpClient = &http.Client{
+	Transport: &http.Transport{
+		MaxIdleConns:        15,
+		IdleConnTimeout:     1 * time.Second,
+		TLSHandshakeTimeout: 1 * time.Second,
+	},
+	Timeout: time.Second * 10,
+}
+
 var (
-	client            = api.NewAPIClient(getAPIKey())
+	client            = api.NewAPIClient(getAPIKey(), httpClient)
 	directionService  = services.NewDirectionsService(client)
 	routeService      = services.NewRoutesService(client)
 	stopService       = services.NewStopsService(client)
-	predictionService = services.NewPredictionsService(client)
+	//predictionService = services.NewPredictionsService(client)
 )
 
 func getAPIKey() string {
@@ -24,17 +35,16 @@ func getAPIKey() string {
 }
 
 func main() {
-	schema := gqlSchema()
+	schema := gqlSchema(dataloaders.NewRetriever())
 
 	h := handler.New(&handler.Config{
 		Schema:   &schema,
 		Pretty:   true,
 		GraphiQL: true,
 	})
-
 	staticFileHandler := http.FileServer(http.Dir("./static/"))
-
-	http.Handle("/graphql", disableCors(h))
+	dlMiddleware := dataloaders.Middleware(*client)
+	http.Handle("/graphql", dlMiddleware(disableCors(h)))
 	http.Handle("/", staticFileHandler)
 	http.ListenAndServe(serverHostname+":"+serverPort, nil)
 }

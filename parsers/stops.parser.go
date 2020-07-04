@@ -1,9 +1,9 @@
 package parsers
 
 import (
-	"GoCtaApi/api"
 	"bufio"
 	"encoding/csv"
+	"github.com/RobusK/GoCtaApi/api"
 	"io"
 	"log"
 	"os"
