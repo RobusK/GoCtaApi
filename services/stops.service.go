@@ -1,8 +1,8 @@
 package services
 
 import (
-	"GoCtaApi/api"
-	"GoCtaApi/parsers"
+	"github.com/RobusK/GoCtaApi/api"
+	"github.com/RobusK/GoCtaApi/parsers"
 	"github.com/wangjohn/quickselect"
 	"pault.ag/go/haversine"
 )
@@ -55,7 +55,20 @@ func (service *StopsService) GetOrCreateStops(routeID string, direction string) 
 }
 
 func (service *StopsService) GetClosest(lat float64, lon float64, k int) []api.Stop {
-	coordinates := service.staticStops
-	quickselect.QuickSelect(newByDistance(coordinates, lat, lon), k)
-	return coordinates[:k]
+	stops := make([]api.Stop, len(service.staticStops))
+	copy(stops, service.staticStops)
+
+	data := newByDistance(stops, lat, lon)
+
+	quickselect.QuickSelect(data, k)
+	insertionSort(data, 0, k)
+	return stops[:k]
+}
+
+func insertionSort(data quickselect.Interface, a, b int) {
+	for i := a + 1; i < b; i++ {
+		for j := i; j > a && data.Less(j, j-1); j-- {
+			data.Swap(j, j-1)
+		}
+	}
 }

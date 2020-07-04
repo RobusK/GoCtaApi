@@ -1,11 +1,11 @@
 package main
 
 import (
-	"GoCtaApi/api"
 	"errors"
 	"fmt"
+	"github.com/RobusK/GoCtaApi/api"
+	"github.com/RobusK/GoCtaApi/dataloaders"
 	"github.com/graphql-go/graphql"
-	"strings"
 )
 
 var routeType = graphql.NewObject(
@@ -40,41 +40,6 @@ var routeType = graphql.NewObject(
 		},
 	})
 
-var stopType = graphql.NewObject(
-	graphql.ObjectConfig{
-		Name: "Stop",
-		Fields: graphql.Fields{
-			"StopID": &graphql.Field{
-				Type: graphql.String,
-			},
-			"CommonName": &graphql.Field{
-				Type: graphql.String,
-			},
-			"Lat": &graphql.Field{
-				Type: graphql.Float,
-			},
-			"Lon": &graphql.Field{
-				Type: graphql.Float,
-			},
-			"Predictions": &graphql.Field{
-				Type: graphql.NewList(predictionType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					stop, _ := p.Source.(api.Stop)
-					channel := make(chan []api.Prediction)
-					go func() {
-						defer close(channel)
-						predictionService.GetOrCreatePredictionsForStop(stop.StopID, channel)
-					}()
-
-					return func() (interface{}, error) {
-						result := <-channel
-						return result, nil
-					}, nil
-
-				},
-			},
-		},
-	})
 
 var predictionType = graphql.NewObject(
 	graphql.ObjectConfig{
@@ -117,7 +82,50 @@ var predictionType = graphql.NewObject(
 	})
 
 // Define the GraphQL Schema
-func gqlSchema() graphql.Schema {
+func gqlSchema(dl dataloaders.Retriever) graphql.Schema {
+	var stopType = graphql.NewObject(
+		graphql.ObjectConfig{
+			Name: "Stop",
+			Fields: graphql.Fields{
+				"StopID": &graphql.Field{
+					Type: graphql.String,
+				},
+				"CommonName": &graphql.Field{
+					Type: graphql.String,
+				},
+				"Lat": &graphql.Field{
+					Type: graphql.Float,
+				},
+				"Lon": &graphql.Field{
+					Type: graphql.Float,
+				},
+				"Predictions": &graphql.Field{
+					Type: graphql.NewList(predictionType),
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						stop, _ := p.Source.(api.Stop)
+						resultChannel := make(chan []api.Prediction, 1)
+						errChannel := make(chan error, 1)
+						go func() {
+							defer close(resultChannel)
+							defer close(errChannel)
+							predictions, err := dl.Retrieve(p.Context).PredictionByStopIDs.Load(stop.StopID)
+							if err != nil {
+								errChannel <- err
+							} else {
+								resultChannel <- predictions
+							}
+						}()
+
+						return func() (interface{}, error) {
+							result := <-resultChannel
+							err := <-errChannel
+							return result, err
+						}, nil
+
+					},
+				},
+			},
+		})
 	fields := graphql.Fields{
 		"routes": &graphql.Field{
 			Type: graphql.NewList(routeType),
@@ -213,18 +221,10 @@ func gqlSchema() graphql.Schema {
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				routeID, success := params.Args["RouteID"].(string)
+				_, success := params.Args["RouteID"].(string)
 				stopID, success2 := params.Args["StopID"].(string)
 				if success && success2 {
-					predictions := predictionService.GetOrCreatePredictionsForStopAndRoute(stopID, routeID)
-					if len(predictions.Error) > 0 {
-						message := ""
-						for _, value := range predictions.Error {
-							message += value.Message + ". "
-						}
-						return nil, errors.New(strings.Trim(message, " "))
-					}
-					return predictions.Predictions, nil
+					return dl.Retrieve(params.Context).PredictionByStopIDs.Load(stopID)
 				}
 				return nil, errors.New("missing or invalid arguments")
 			},
